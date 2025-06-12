@@ -60,11 +60,11 @@ check_oracle_ready() {
         fi
         
         # Intentar conectarse a la CDB
-        if echo "SELECT 1 FROM DUAL;" | sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_SID} as sysdba >/dev/null 2>&1; then
+        if echo "SELECT 1 FROM DUAL;" | sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_SID} as sysdba >/dev/null 2>&1; then
             success "✅ Conexión a CDB establecida"
             
             # Verificar si la PDB está disponible
-            if echo "SELECT 1 FROM DUAL;" | sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba >/dev/null 2>&1; then
+            if echo "SELECT 1 FROM DUAL;" | sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba >/dev/null 2>&1; then
                 success "✅ Conexión a PDB establecida"
                 return 0
             else
@@ -98,7 +98,7 @@ if [ -d "$SCRIPTS_DIR" ] && [ "$(ls -A $SCRIPTS_DIR/*.sql 2>/dev/null)" ]; then
             log "   📄 Ejecutando: $script_name"
             
             # Ejecutar el script y capturar la salida
-            if sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba @"$script" > /tmp/script_output.log 2>&1; then
+            if sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba @"$script" > /tmp/script_output.log 2>&1; then
                 success "   ✅ $script_name ejecutado correctamente"
                 
                 # Mostrar mensajes importantes del script
@@ -122,18 +122,18 @@ log "🔍 Verificando estado de la base de datos..."
 
 # Verificar tablespaces
 log "   📊 Verificando tablespaces..."
-echo "SELECT tablespace_name, status FROM dba_tablespaces;" | sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba
+echo "SELECT tablespace_name, status FROM dba_tablespaces;" | sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba
 
 # Verificar usuarios creados
 log "   👥 Verificando usuarios..."
-echo "SELECT username, account_status FROM dba_users WHERE username NOT IN ('SYS','SYSTEM','ANONYMOUS','APEX_PUBLIC_USER','FLOWS_FILES','APEX_040000','APEX_040200','CTXSYS','DBSNMP','DIP','ORACLE_OCM','OUTLN','XDB') ORDER BY username;" | sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba
+echo "SELECT username, account_status FROM dba_users WHERE username NOT IN ('SYS','SYSTEM','ANONYMOUS','APEX_PUBLIC_USER','FLOWS_FILES','APEX_040000','APEX_040200','CTXSYS','DBSNMP','DIP','ORACLE_OCM','OUTLN','XDB') ORDER BY username;" | sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba
 
 success "🎉 Configuración de Oracle Database completada"
 log "📡 Base de datos disponible en:"
-log "   - Puerto: 1521"
+log "   - Puerto: 2521"
 log "   - SID: $ORACLE_SID"
 log "   - PDB: $ORACLE_PDB"
-log "   - Enterprise Manager: http://localhost:5500/em"
+log "   - Enterprise Manager: http://localhost:6500/em"
 
 # Mantener el contenedor corriendo y mostrar logs
 log "📋 Monitoreando logs de Oracle..."

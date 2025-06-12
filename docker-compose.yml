@@ -6,8 +6,8 @@ services:
     container_name: oracle-db-container
     hostname: oracle-db
     ports:
-      - "1521:1521"
-      - "5500:5500"
+      - "2521:2521"
+      - "6500:5500"
     environment:
       - ORACLE_PWD=Oracle123!
       - ORACLE_CHARACTERSET=AL32UTF8

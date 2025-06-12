@@ -30,7 +30,7 @@ RUN chmod +x /opt/oracle/scripts/startup/*.sh \
 
 USER oracle
 
-EXPOSE 1521 5500
+EXPOSE 2521 5500
 
 VOLUME ["/opt/oracle/oradata", "/opt/oracle/backup"]
 

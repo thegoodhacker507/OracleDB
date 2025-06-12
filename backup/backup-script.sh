@@ -76,12 +76,12 @@ create_directories() {
 check_oracle_connection() {
     log "🔍 Verificando conectividad a Oracle..."
     
-    if ! sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_SID} as sysdba <<< "SELECT 1 FROM DUAL;" >/dev/null 2>&1; then
+    if ! sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_SID} as sysdba <<< "SELECT 1 FROM DUAL;" >/dev/null 2>&1; then
         error "No se puede conectar a la instancia CDB $ORACLE_SID"
         return 1
     fi
     
-    if ! sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<< "SELECT 1 FROM DUAL;" >/dev/null 2>&1; then
+    if ! sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<< "SELECT 1 FROM DUAL;" >/dev/null 2>&1; then
         error "No se puede conectar a la PDB $ORACLE_PDB"
         return 1
     fi
@@ -94,21 +94,21 @@ check_oracle_connection() {
 get_db_info() {
     log "📊 Obteniendo información de la base de datos..."
     
-    DB_SIZE=$(sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF
+    DB_SIZE=$(sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF
 SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
 SELECT ROUND(SUM(bytes)/1024/1024/1024, 2) || ' GB' FROM dba_data_files;
 EXIT;
 EOF
 )
     
-    TABLESPACE_COUNT=$(sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF
+    TABLESPACE_COUNT=$(sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF
 SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
 SELECT COUNT(*) FROM dba_tablespaces;
 EXIT;
 EOF
 )
     
-    USER_COUNT=$(sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF
+    USER_COUNT=$(sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF
 SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
 SELECT COUNT(*) FROM dba_users WHERE account_status = 'OPEN';
 EXIT;
@@ -149,7 +149,7 @@ DELETE NOPROMPT OBSOLETE;
 EXIT;
 EOF
 
-    if rman target sys/${ORACLE_PWD}@localhost:1521/${ORACLE_SID} @"$rman_script" >> "$LOG_FILE" 2>&1; then
+    if rman target sys/${ORACLE_PWD}@localhost:2521/${ORACLE_SID} @"$rman_script" >> "$LOG_FILE" 2>&1; then
         success "✅ Backup RMAN completado exitosamente"
         return 0
     else
@@ -166,14 +166,14 @@ datapump_export() {
     mkdir -p "$export_dir"
     
     # Crear directorio en Oracle si no existe
-    sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF >> "$LOG_FILE" 2>&1
+    sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF >> "$LOG_FILE" 2>&1
 CREATE OR REPLACE DIRECTORY BACKUP_EXPORT_DIR AS '$export_dir';
 GRANT READ, WRITE ON DIRECTORY BACKUP_EXPORT_DIR TO SYSTEM;
 EXIT;
 EOF
 
     # Export de todos los esquemas de usuario
-    local schemas=$(sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF
+    local schemas=$(sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF
 SET PAGESIZE 0 FEEDBACK OFF VERIFY OFF HEADING OFF ECHO OFF
 SELECT LISTAGG(username, ',') WITHIN GROUP (ORDER BY username)
 FROM dba_users 
@@ -188,7 +188,7 @@ EOF
     if [ -n "$schemas" ] && [ "$schemas" != " " ]; then
         log "   📋 Exportando esquemas: $schemas"
         
-        if expdp system/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} \
+        if expdp system/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} \
             directory=BACKUP_EXPORT_DIR \
             dumpfile=full_export_${BACKUP_DATE}.dmp \
             logfile=full_export_${BACKUP_DATE}.log \
@@ -212,14 +212,14 @@ backup_configs() {
     mkdir -p "$config_dir"
     
     # Backup de parámetros de la base de datos
-    sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/db_parameters.txt"
+    sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/db_parameters.txt"
 SET PAGESIZE 1000 LINESIZE 200
 SELECT name, value, description FROM v\$parameter WHERE isdefault = 'FALSE' ORDER BY name;
 EXIT;
 EOF
 
     # Backup de usuarios y roles
-    sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/users_roles.txt"
+    sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/users_roles.txt"
 SET PAGESIZE 1000 LINESIZE 200
 SELECT 'USER: ' || username || ' - STATUS: ' || account_status || ' - PROFILE: ' || profile
 FROM dba_users ORDER BY username;
@@ -229,7 +229,7 @@ EXIT;
 EOF
 
     # Backup de privilegios del sistema
-    sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/system_privileges.txt"
+    sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/system_privileges.txt"
 SET PAGESIZE 1000 LINESIZE 200
 SELECT grantee, privilege, admin_option FROM dba_sys_privs 
 WHERE grantee NOT IN ('SYS','SYSTEM','PUBLIC') ORDER BY grantee, privilege;
@@ -237,7 +237,7 @@ EXIT;
 EOF
 
     # Backup de tablespaces
-    sqlplus -S sys/${ORACLE_PWD}@localhost:1521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/tablespaces.txt"
+    sqlplus -S sys/${ORACLE_PWD}@localhost:2521/${ORACLE_PDB} as sysdba <<EOF > "$config_dir/tablespaces.txt"
 SET PAGESIZE 1000 LINESIZE 200
 SELECT tablespace_name, status, contents, extent_management, allocation_type
 FROM dba_tablespaces ORDER BY tablespace_name;
