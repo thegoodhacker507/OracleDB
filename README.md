@@ -13,6 +13,6 @@ Este proyecto proporciona una configuración completa de Oracle Database 23ai FR
 ## Instalación rápida
 
 ```bash
-git clone https://github.com/tuusuario/oracle-docker-lab.git
+git clone https://github.com/thegoodhacker507//OracleDB.git
 cd oracle-docker-lab
 docker-compose up -d
