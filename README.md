@@ -12,7 +12,7 @@ Este proyecto proporciona una configuración completa de Oracle Database 23ai FR
 
 ## Objetivos
 
--   Implementar Oracle Database 21c XE en un contenedor Docker.
+-   Implementar Oracle Database 23ai Free en un contenedor Docker.
 -   Configurar medidas de seguridad avanzadas para proteger la base de datos.
 -   Automatizar las copias de seguridad para garantizar la recuperación ante desastres.
 -   Documentar el proceso de implementación y configuración para facilitar la replicación y el mantenimiento.
